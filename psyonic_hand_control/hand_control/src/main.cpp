@@ -68,7 +68,7 @@ void setup()
 
   pinMode(led, OUTPUT);
   // Wire1.begin();             // join i2c bus (address optional for master)
-  Serial4.begin(460800);
+  Serial1.begin(460800);
   // Serial.begin(9600);       // start serial for output
   // Serial.println("Begin");
 }
@@ -80,8 +80,8 @@ void read_values()
   // Serial.println("Reading");
   for (int i=0;i<len_reception;i++)
   {
-    if (Serial4.available()){
-      c[i] = Serial4.read(); 
+    if (Serial1.available()){
+      c[i] = Serial1.read(); 
       // Serial.print(" ");
       // Serial.print(i);
       // Serial.print(": ");
@@ -117,7 +117,7 @@ void loop()
 		fpos[5] = -fpos[5];
 
 		format_packet(fpos, tx_buf);
-    Serial4.write(tx_buf, 15);
+    Serial1.write(tx_buf, 15);
     // Serial.println("Read");
     read_values();
     delay(1);
