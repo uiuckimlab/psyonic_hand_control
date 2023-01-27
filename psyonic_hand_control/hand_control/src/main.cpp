@@ -16,6 +16,8 @@ int led = LED_BUILTIN;
 
 #include <stdint.h>
 #include <math.h>
+#include <ros.h>
+#include <std_msgs/Int16.h>
 
 #define NUM_CHANNELS 6
 #define API_TX_SIZE	 15
@@ -54,32 +56,41 @@ void format_packet(float fpos_in[NUM_CHANNELS], uint8_t tx_buf[API_TX_SIZE])
 	tx_buf[API_TX_SIZE-1] = get_checksum((uint8_t*)tx_buf, API_TX_SIZE-1);  //full checksum
 }
 
+ros::NodeHandle nh;
+std_msgs::Int16 val_msg;
+ros::Publisher pub("psyonic_hand_vals", &val_msg);
 
 void setup()
 {
+  nh.getHardware()->setBaud(4000000);
+  nh.initNode();   
+  nh.advertise(pub);
+
   pinMode(led, OUTPUT);
   // Wire1.begin();             // join i2c bus (address optional for master)
   Serial4.begin(460800);
-  Serial.begin(9600);       // start serial for output
-  Serial.println("Begin");
+  // Serial.begin(9600);       // start serial for output
+  // Serial.println("Begin");
 }
 
 void read_values()
 {
   int len_reception = 39; // 39:EXtended variant3 //72:EXtended variant1,2 //10: standard I2C
   int c[API_TX_SIZE];
-  Serial.println("Reading");
+  // Serial.println("Reading");
   for (int i=0;i<len_reception;i++)
   {
     if (Serial4.available()){
       c[i] = Serial4.read(); 
-      Serial.print(" ");
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.println(c[i]);
+      // Serial.print(" ");
+      // Serial.print(i);
+      // Serial.print(": ");
+      // Serial.println(c[i]);
+      val_msg.data = c[i];
+      pub.publish(&val_msg);
     }
   }
-  Serial.println("");
+  // Serial.println("");
 }
 
 void loop()
@@ -107,9 +118,11 @@ void loop()
 
 		format_packet(fpos, tx_buf);
     Serial4.write(tx_buf, 15);
-    Serial.println("Read");
+    // Serial.println("Read");
     read_values();
     delay(1);
+    
+    nh.spinOnce();
    }
   
   }
