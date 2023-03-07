@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.0.2)
 project(psyonic_hand_control)
 
@@ -13,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   rosserial_arduino
   rosserial_client
+  std_msgs
+  message_generation
 )
 
 rosserial_generate_ros_lib(
@@ -59,10 +62,10 @@ rosserial_configure_client(
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#  FILES
-#  hand_val.msg
-#)
+add_message_files(
+  FILES
+  handVal.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -79,10 +82,10 @@ rosserial_configure_client(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-#generate_messages(
-#  DEPENDENCIES
-#  std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -116,7 +119,7 @@ rosserial_configure_client(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES psyonic_hand_control
- CATKIN_DEPENDS roscpp rospy std_msgs
+ CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 # DEPENDS system_lib
 )
 
@@ -220,4 +223,3 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-

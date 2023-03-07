@@ -60,6 +60,21 @@
   <exec_depend>std_msgs</exec_depend>
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
+  <!-- <depend>std_msgs</depend> -->
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>dynamixel_workbench_msgs</depend>
+  <depend>dynamixel_workbench_toolbox</depend>
+  <depend>dynamixel_sdk</depend>
+  <!-- <depend>dynamixel_sdk_examples</depend> -->
+  <depend>cmake_modules</depend>
+  <depend>yaml-cpp</depend>
+  <depend>eigen</depend>
+  <exec_depend>module</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <build_export_depend>message_generation</build_export_depend>
+  <build_depend>message_runtime</build_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
