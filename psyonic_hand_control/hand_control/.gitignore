@@ -8,7 +8,7 @@
 !.pio/libdeps/teensy40/Rosserial Arduino Library/src
 .pio/libdeps/teensy40/Rosserial Arduino Library/src/*
 
-!.pio/libdeps/teensy40/Rosserial Arduino Library/src/papras_skin
+!.pio/libdeps/teensy40/Rosserial Arduino Library/src/psyonic_hand_control
 !.pio/libdeps/teensy40/Rosserial Arduino Library/src/ArduinoHardware.h
 !.pio/libdeps/teensy40/Rosserial Arduino Library/src/ros.h
 

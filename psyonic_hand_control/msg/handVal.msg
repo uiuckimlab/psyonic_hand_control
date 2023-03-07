@@ -1,4 +1,4 @@
-float32[] positions
-float32[] currents
-float32[] velocities
-float32[] fingertips
+float32[6] positions
+float32[6] currents
+float32[6] velocities
+float32[36] fingertips
