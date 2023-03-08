@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include "ros/msg.h"
+#include "std_msgs/Header.h"
 
 namespace psyonic_hand_control
 {
@@ -12,12 +14,15 @@ namespace psyonic_hand_control
   class handVal : public ros::Msg
   {
     public:
+      typedef std_msgs::Header _header_type;
+      _header_type header;
       float positions[6];
       float currents[6];
       float velocities[6];
       float fingertips[36];
 
     handVal():
+      header(),
       positions(),
       currents(),
       velocities(),
@@ -28,6 +33,7 @@ namespace psyonic_hand_control
     virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
+      offset += this->header.serialize(outbuffer + offset);
       for( uint32_t i = 0; i < 6; i++){
       union {
         float real;
@@ -82,6 +88,7 @@ namespace psyonic_hand_control
     virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
+      offset += this->header.deserialize(inbuffer + offset);
       for( uint32_t i = 0; i < 6; i++){
       union {
         float real;
@@ -138,7 +145,7 @@ namespace psyonic_hand_control
     }
 
     virtual const char * getType() override { return "psyonic_hand_control/handVal"; };
-    virtual const char * getMD5() override { return "2c5ecc99fbd76ae2d2463465cb2deaf6"; };
+    virtual const char * getMD5() override { return "feffb422857a42d0439848528580dd60"; };
 
   };
 

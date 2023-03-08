@@ -19,10 +19,28 @@ int led = LED_BUILTIN;
 #include <ros.h>
 #include <std_msgs/Int16.h>
 #include <std_msgs/Float32.h>
+#include <ros/time.h>
 #include <psyonic_hand_control/handVal.h>
 
 #define NUM_CHANNELS 6
 #define API_TX_SIZE	 15
+
+ros::NodeHandle nh;
+std_msgs::Int16 val_msg;
+std_msgs::Float32 val_msg_f;
+psyonic_hand_control::handVal hand_msg;
+// ros::Publisher pub("psyonic_hand_vals", &val_msg);
+// ros::Publisher pub("psyonic_hand_vals", &val_msg_f);
+ros::Publisher pub("psyonic_hand_vals", &hand_msg);
+// float32[6] positions
+// float32[6] currents
+// float32[6] velocities
+// float32[36] fingertips
+float position[6];
+float current[6];
+float velocity[6];
+float fingertip[36];
+
 
 typedef union api_i16_t
 {
@@ -63,7 +81,7 @@ float position_converter(int16_t data, int16_t data2){
   int data_2 = data - data_1*16;
   int data_3 = data2/16;
   int data_4 = data2 - data_3*16;
-  int pos =  16 * data_1 + 1 * data_2 + 16*16*16*data_3 + 16*16*data_2;
+  int pos =  16 * data_1 + 1 * data_2 + 16*16*16*data_3 + 16*16*data_4;
 
   float theta = ((pos / 32767.0f) * 150.0f);
   return theta;
@@ -74,35 +92,21 @@ float current_converter(int16_t data, int16_t data2){
   int data_2 = data - data_1*16;
   int data_3 = data2/16;
   int data_4 = data2 - data_3*16;
-  int amp =  16 * data_1 + 1 * data_2 + 16*16*16*data_3 + 16*16*data_2;
+  int amp =  16 * data_1 + 1 * data_2 + 16*16*16*data_3 + 16*16*data_4;
 
-  float current = ((amp / 7000.0f) * 0.54f);
+  // float current = ((amp / 7000.0f) * 0.54f);
+  float current = ((amp / 620.606079));
   return current;
 }
 
 
-ros::NodeHandle nh;
-std_msgs::Int16 val_msg;
-std_msgs::Float32 val_msg_f;
-psyonic_hand_control::handVal hand_msg;
-// ros::Publisher pub("psyonic_hand_vals", &val_msg);
-// ros::Publisher pub("psyonic_hand_vals", &val_msg_f);
-ros::Publisher pub("psyonic_hand_vals", &hand_msg);
-// float32[6] positions
-// float32[6] currents
-// float32[6] velocities
-// float32[36] fingertips
-float position[6];
-float current[6];
-float velocity[6];
-float fingertip[36];
 
 void setup()
 {
   nh.getHardware()->setBaud(4000000);
   nh.initNode();   
   nh.advertise(pub);
-
+  // digitalWrite(16, LOW);
   for(int i=0;i<6;i++){
     position[i] = 0;
     current[i]  = 0;
@@ -111,7 +115,6 @@ void setup()
   }
   for(int i=0;i<36;i++){
     fingertip[i] = 0;
-    
   }
 
   pinMode(led, OUTPUT);
@@ -121,8 +124,10 @@ void setup()
   Serial4.begin(460800); //460800
   // Serial.begin(9600);       // start serial for output
   // Serial.println("Begin");
+  
 }
-
+// float t_start = ((float)millis())*.001f;
+// float t = ((float)millis())*.001f;
 void read_values_1()
 {
   int len_reception = 72; // 39:EXtended variant3 //72:EXtended variant1,2 //10: standard I2C
@@ -132,6 +137,7 @@ void read_values_1()
   float joint_angle[6];
   float joint_current[6];
   int sum =0;
+  // float time;
   // Serial.println("Reading");
   // int rlen = Serial4.readBytes(c,len_reception);
   int count_buffer=0;
@@ -155,7 +161,9 @@ void read_values_1()
       else
         break;
     }
+    delay(1);
     Serial4.flush();
+    delay(1);
     for (int i=0;i<len_reception;i++)
     {
       if (Serial4.available()){
@@ -185,6 +193,9 @@ void read_values_1()
     for(int i=0;i<6;i++){
       
       joint_angle[i] = position_converter(data[i*4+1],data[i*4+2]);
+      // if (joint_angle[i]>360){
+      //   joint_angle[i] = (360 -joint_angle[i]);
+      // }
       joint_current[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
       position[i] = joint_angle[i];
       current[i]  = joint_current[i];
@@ -200,7 +211,15 @@ void read_values_1()
   // val_msg.data = c[len_reception-1];
   // pub.publish(&val_msg);
   // Serial4.flush();
+  // hand_msg.header.seq = 1
+  
+  // t = ((float)millis())*.001f;
+  // time = t- t_start;
+
+  // hand_msg.header.stamp = ros::Time::now();
+  // hand_msg.header.frame_id = "map"
   pub.publish(&hand_msg);
+  // Serial4.flush();
 
 }
 
@@ -209,27 +228,25 @@ void loop()
   
   float fpos[NUM_CHANNELS] = {15.f,15.f,15.f,15.f,15.f,-15.f};
 	uint8_t tx_buf[API_TX_SIZE] = {0};
-  
-  float t_start = ((float)millis())*.001f;
-
-  char input;
+  setup();
   while(1)
   {
         
     // *****************
     // sinusoidal movement example
     // but jerky though
-
     float t = ((float)millis())*.001f;
 		for(int ch = 0; ch < NUM_CHANNELS; ch++)
 		{
-			fpos[ch] = (0.5f*cos((t) + (float)ch)+0.5f)*30.f + 15.f;
+			// fpos[ch] = (0.5f*cos((t) + (float)ch)+0.5f)*30.f + 15.f;
+      fpos[ch] = (0.5f*cos((t) )+0.5f)*30.f + 15.f;
     
 		}
 		fpos[5] = -fpos[5];
     // Serial.println("write");
 		format_packet(fpos, tx_buf);
     Serial4.write(tx_buf, 15);
+    // delay(1);
     // Serial.println("Read");
     read_values_1();
     // if (Serial.read()==0x50){
@@ -237,7 +254,7 @@ void loop()
     // }
     // else
     //   Serial.clear(); 
-    delay(2);
+    delay(5);
     
     nh.spinOnce();
    }
