@@ -59,7 +59,7 @@ namespace ros
 
 #else
 
-  typedef NodeHandle_<ArduinoHardware> NodeHandle; // default 25, 25, 512, 512 //5, 5, 65536, 65536 , 2, 2, 1152, 1152
+  typedef NodeHandle_<ArduinoHardware,25, 25, 65536, 65536 > NodeHandle; // default 25, 25, 512, 512 //5, 5, 65536, 65536 , 2, 2, 1152, 1152
 
 #endif
 }

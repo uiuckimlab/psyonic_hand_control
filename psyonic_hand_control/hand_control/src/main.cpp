@@ -76,29 +76,78 @@ void format_packet(float fpos_in[NUM_CHANNELS], uint8_t tx_buf[API_TX_SIZE])
 	tx_buf[API_TX_SIZE-1] = get_checksum((uint8_t*)tx_buf, API_TX_SIZE-1);  //full checksum
 }
 
-float position_converter(int16_t data, int16_t data2){
-  int data_1 = data/16;
-  int data_2 = data - data_1*16;
-  int data_3 = data2/16;
-  int data_4 = data2 - data_3*16;
-  int pos =  16 * data_1 + 1 * data_2 + 16*16*16*data_3 + 16*16*data_4;
-
-  float theta = ((pos / 32767.0f) * 150.0f);
+float position_converter(uint8_t data, uint8_t data2){
+  int16_t pos = (data2);
+  pos = pos << 8;
+  pos = pos | data;
+  
+  float theta = ((float(pos) / 32767.0f) * 150.0f);
   return theta;
 }
 
-float current_converter(int16_t data, int16_t data2){
-  int data_1 = data/16;
-  int data_2 = data - data_1*16;
-  int data_3 = data2/16;
-  int data_4 = data2 - data_3*16;
-  int amp =  16 * data_1 + 1 * data_2 + 16*16*16*data_3 + 16*16*data_4;
-
-  // float current = ((amp / 7000.0f) * 0.54f);
-  float current = ((amp / 620.606079));
+float current_converter(uint8_t data, uint8_t data2){
+  int16_t amp = (data2);
+  amp = amp << 8;
+  amp = amp | data;
+  float current = ((float(amp) / 620.606079)); // BLE command Rv
   return current;
 }
 
+void unpack_8bit_into_12bit(uint8_t* arr, uint16_t* vals, int valsize)
+{
+  for(int i = 0; i < valsize; i++)
+    vals[i] = 0; //Clear the buffer before loading with |=
+  for(int bidx = valsize * 12 - 4; bidx >= 0; bidx -= 4)
+  {
+    int validx = bidx / 12;
+    int arridx = bidx / 8;
+    int shift_val = (bidx % 8);
+    vals[validx] |= ((arr[arridx] >> shift_val) &0x0F) << (bidx % 12);
+  }
+}
+
+float tipforce_converter_1(uint8_t data, uint8_t data2, uint8_t data3){ // 12bit
+  int valsize = 2;
+  int16_t vals[valsize];
+  uint8_t arr[3] = {data,data2,data3};
+  for(int i = 0; i < valsize; i++)
+    vals[i] = 0; //Clear the buffer before loading with |=
+  for(int bidx = valsize * 12 - 4; bidx >= 0; bidx -= 4)
+  {
+    int validx = bidx / 12;
+    int arridx = bidx / 8;
+    int shift_val = (bidx % 8);
+    vals[validx] |= ((arr[arridx] >> shift_val) &0x0F) << (bidx % 12);
+  }
+  
+  float V = float(vals[0]) * 3.3/4096;
+  float R = 33000 / V + 10000;
+  float C1 = 121591.0;
+  float C2 = 0.878894;
+  float force = C1/R + C2;  
+  return force;
+}
+float tipforce_converter_2(uint8_t data, uint8_t data2, uint8_t data3){ // 12bit
+  int valsize = 2;
+  int16_t vals[valsize];
+  uint8_t arr[3] = {data,data2,data3};
+  for(int i = 0; i < valsize; i++)
+    vals[i] = 0; //Clear the buffer before loading with |=
+  for(int bidx = valsize * 12 - 4; bidx >= 0; bidx -= 4)
+  {
+    int validx = bidx / 12;
+    int arridx = bidx / 8;
+    int shift_val = (bidx % 8);
+    vals[validx] |= ((arr[arridx] >> shift_val) &0x0F) << (bidx % 12);
+  }
+  
+  float V = float(vals[1]) * 3.3/4096;
+  float R = 33000 / V + 10000;
+  float C1 = 121591.0;
+  float C2 = 0.878894;
+  float force = C1/R + C2;
+  return force;
+}
 
 
 void setup()
@@ -106,7 +155,6 @@ void setup()
   nh.getHardware()->setBaud(4000000);
   nh.initNode();   
   nh.advertise(pub);
-  // digitalWrite(16, LOW);
   for(int i=0;i<6;i++){
     position[i] = 0;
     current[i]  = 0;
@@ -116,111 +164,102 @@ void setup()
   for(int i=0;i<36;i++){
     fingertip[i] = 0;
   }
-
   pinMode(led, OUTPUT);
-  // Wire1.begin(); 
-  // Wire1.setClock(400000);
-              // join i2c bus (address optional for master)
-  Serial4.begin(460800); //460800
-  // Serial.begin(9600);       // start serial for output
-  // Serial.println("Begin");
-  
+  Serial1.begin(460800);
+  digitalWrite(led, HIGH);
 }
-// float t_start = ((float)millis())*.001f;
-// float t = ((float)millis())*.001f;
+int8_t add(uint8_t data[72]){
+  int8_t x = 0;
+  for(int i = 0; i < 72; i++){
+     x += (int8_t) data[i];
+  }
+  return x;
+}
 void read_values_1()
 {
   int len_reception = 72; // 39:EXtended variant3 //72:EXtended variant1,2 //10: standard I2C
-  int c[len_reception];
-  int c_2[len_reception];
-  int data[len_reception];
+  uint8_t c[len_reception];
+  uint8_t c_2[len_reception];
+  uint8_t data[len_reception];
   float joint_angle[6];
   float joint_current[6];
-  int sum =0;
-  // float time;
-  // Serial.println("Reading");
-  // int rlen = Serial4.readBytes(c,len_reception);
+  float tip_force[36];
+  int8_t sum =0;
+  for(int i=0;i<6;i++){
+    position[i] = 0;
+    current[i]  = 0;
+    velocity[i] = 0;
+    joint_angle[i]=0;
+    joint_current[i]=0;
+
+  }
+  for(int i=0;i<36;i++){
+    fingertip[i] = 0;
+    tip_force[i]=0;
+  }
+  for(int i=0;i<len_reception;i++){
+    c[i] = 0;
+    c_2[i]=0;
+    data[i]=0;
+  }
+  byte buffer[72];
+  Serial1.addMemoryForRead(buffer,sizeof(buffer));
   int count_buffer=0;
   int count_buffer_2=0;
-  // Serial4.flush();
-  // Serial4.flush();
-  // val_msg_f.data = 1111;
-  // pub.publish(&val_msg_f);
-  // if( Serial4.read){
-    for (int i=0;i<len_reception;i++)
+  int time = 1000;
+  int len1 = Serial1.available();
+  for (int i=0;i<len1;i++)
+  {
+      c[i] = Serial1.read();
+      count_buffer =i;
+  }
+  delayMicroseconds(time);
+  Serial1.flush();
+  delayMicroseconds(time);
+  int len2 = Serial1.available();
+  for (int i=0;i<len2;i++)
+  {
+      c_2[i] = Serial1.read();
+      count_buffer_2 =i;
+  }
+  for(int i=0; i<len_reception;i++){
+    if (i <(count_buffer_2 +1)){
+      data[i] = c_2[i];
+    }
+    else{
+      data[i] = c[i-(count_buffer_2 +1)];
+    }
+  }
+  sum = add(data);
+  for(int i=0;i<6;i++){
+    
+    joint_angle[i] = position_converter(data[i*4+1],data[i*4+2]);
+    joint_current[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
+    if(i<5)
     {
-      if (Serial4.available()){
-        // val_msg.data = Serial4.available();
-        // pub.publish(&val_msg);
-        c[i] = Serial4.read();
-        sum = (sum + c[i]);
-        // val_msg.data = c[i];
-        // pub.publish(&val_msg);
-        count_buffer =i;
-      }
-      else
-        break;
-    }
-    delay(1);
-    Serial4.flush();
-    delay(1);
-    for (int i=0;i<len_reception;i++)
-    {
-      if (Serial4.available()){
-        // val_msg.data = Serial4.available();
-        // pub.publish(&val_msg);
-        c_2[i] = Serial4.read();
-        // val_msg.data = c[i];
-        // pub.publish(&val_msg);
-        sum = (sum + c_2[i]);
-        count_buffer_2 =i;
-      }
-      else
-        break;
-    }
-    for(int i=0; i<len_reception;i++){
-      if (i <(count_buffer_2 +1)){
-        data[i] = c_2[i];
-      }
-      else{
-        data[i] = c[i-(count_buffer_2 +1)];
-      }
-      // val_msg.data = data[i];
-      // // val_msg.data = count_buffer;
-      // pub.publish(&val_msg);
-
-    }
-    for(int i=0;i<6;i++){
-      
-      joint_angle[i] = position_converter(data[i*4+1],data[i*4+2]);
-      // if (joint_angle[i]>360){
-      //   joint_angle[i] = (360 -joint_angle[i]);
-      // }
-      joint_current[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
-      position[i] = joint_angle[i];
-      current[i]  = joint_current[i];
-      hand_msg.positions[i] = position[i];
-      hand_msg.currents[i] = current[i];
-      // val_msg_f.data = joint_angle[i];
-      // pub.publish(&val_msg_f);
-    }
-  // }
-  // val_msg.data = Serial4.available();
-  // pub.publish(&val_msg);
+      fingertip[i*6]= tipforce_converter_1(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
+      fingertip[i*6+1]= tipforce_converter_2(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
+      fingertip[i*6+2]= tipforce_converter_1(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
+      fingertip[i*6+3]= tipforce_converter_2(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
+      fingertip[i*6+4]= tipforce_converter_1(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);
+      fingertip[i*6+5]= tipforce_converter_2(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);            
+    }         
+    position[i] = joint_angle[i];
+    current[i]  = joint_current[i];
+    hand_msg.positions[i] = position[i];
+    hand_msg.currents[i] = current[i];
+  }
+  fingertip[35] = data[0];
+  fingertip[34] = data[71];
+  fingertip[32] = data[70];
+  fingertip[31] = data[69];
   sum = sum % 256;
-  // val_msg.data = c[len_reception-1];
-  // pub.publish(&val_msg);
-  // Serial4.flush();
-  // hand_msg.header.seq = 1
-  
-  // t = ((float)millis())*.001f;
-  // time = t- t_start;
+  fingertip[33] = sum;
 
-  // hand_msg.header.stamp = ros::Time::now();
-  // hand_msg.header.frame_id = "map"
+  for(int i=0;i<36;i++){
+    hand_msg.fingertips[i] = fingertip[i];
+  }
   pub.publish(&hand_msg);
-  // Serial4.flush();
-
 }
 
 void loop()
@@ -228,35 +267,17 @@ void loop()
   
   float fpos[NUM_CHANNELS] = {15.f,15.f,15.f,15.f,15.f,-15.f};
 	uint8_t tx_buf[API_TX_SIZE] = {0};
-  setup();
-  while(1)
-  {
-        
-    // *****************
-    // sinusoidal movement example
-    // but jerky though
-    float t = ((float)millis())*.001f;
-		for(int ch = 0; ch < NUM_CHANNELS; ch++)
-		{
-			// fpos[ch] = (0.5f*cos((t) + (float)ch)+0.5f)*30.f + 15.f;
-      fpos[ch] = (0.5f*cos((t) )+0.5f)*30.f + 15.f;
-    
-		}
-		fpos[5] = -fpos[5];
-    // Serial.println("write");
-		format_packet(fpos, tx_buf);
-    Serial4.write(tx_buf, 15);
-    // delay(1);
-    // Serial.println("Read");
-    read_values_1();
-    // if (Serial.read()==0x50){
-    //   read_values_1();
-    // }
-    // else
-    //   Serial.clear(); 
-    delay(5);
-    
-    nh.spinOnce();
-   }
   
+  float t = ((float)millis())*.001f;
+  for(int ch = 0; ch < NUM_CHANNELS; ch++)
+  {
+    // fpos[ch] = (0.5f*cos((t) + (float)ch)+0.5f)*30.f + 15.f;
+    fpos[ch] = (0.5f*cos((t) )+0.5f)*30.f + 15.f;
+  
+  }
+  fpos[5] = -fpos[5];
+  format_packet(fpos, tx_buf);
+  Serial1.write(tx_buf, 15);
+  read_values_1();
+  nh.spinOnce();
   }
