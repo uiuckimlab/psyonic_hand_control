@@ -78,6 +78,11 @@
   <!-- <build_depend>handVal</build_depend>
   <exec_depend>handVal</exec_depend> -->
 
+  <!-- make depends for sensor_msgs  hardware_interface  controller_manager -->
+  <!-- <build_depend>hardware_interface</build_depend>
+  <build_depend>controller_manager</build_depend>
+  <exec_depend>hardware_interface</exec_depend>
+  <exec_depend>controller_manager</exec_depend> -->
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

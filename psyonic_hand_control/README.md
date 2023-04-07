@@ -1,3 +1,7 @@
+Install dependencies
+```
+sudo apt-get install ros-noetic-rosserial-arduino
+```
 
 To communicate between ROS and teensy,(Serial should be commented out.)
 reboot the teensy first and,
