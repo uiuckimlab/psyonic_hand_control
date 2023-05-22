@@ -13,6 +13,7 @@
 #include <Wire.h>
 
 int led = LED_BUILTIN;
+bool openHand = true;
 
 #include <stdint.h>
 #include <math.h>
@@ -21,6 +22,7 @@ int led = LED_BUILTIN;
 #include <std_msgs/Float32.h>
 #include <ros/time.h>
 #include <psyonic_hand_control/handVal.h>
+#include <std_msgs/Float32MultiArray.h>
 
 #define NUM_CHANNELS 6
 #define API_TX_SIZE	 15
@@ -29,18 +31,21 @@ ros::NodeHandle nh;
 std_msgs::Int16 val_msg;
 std_msgs::Float32 val_msg_f;
 psyonic_hand_control::handVal hand_msg;
-// ros::Publisher pub("psyonic_hand_vals", &val_msg);
-// ros::Publisher pub("psyonic_hand_vals", &val_msg_f);
 ros::Publisher pub("psyonic_hand_vals", &hand_msg);
-// float32[6] positions
-// float32[6] currents
-// float32[6] velocities
-// float32[36] fingertips
+
 float position[6];
 float current[6];
 float velocity[6];
 float fingertip[36];
 
+
+float fpos[NUM_CHANNELS] = {30.f,30.f,30.f,30.f,30.f, 100.f};
+void openHandCallback(const std_msgs::Float32MultiArray& msg) {
+  for (int i = 0; i < msg.data_length && i < NUM_CHANNELS; i++) {
+    fpos[i] = msg.data[i];
+  }
+}
+ros::Subscriber<std_msgs::Float32MultiArray> openHandSub("psyonic_controller", openHandCallback);
 
 typedef union api_i16_t
 {
@@ -155,6 +160,7 @@ void setup()
   nh.getHardware()->setBaud(4000000);
   nh.initNode();   
   nh.advertise(pub);
+  nh.subscribe(openHandSub);
   for(int i=0;i<6;i++){
     position[i] = 0;
     current[i]  = 0;
@@ -265,19 +271,9 @@ void read_values_1()
 void loop()
 {
   
-  float fpos[NUM_CHANNELS] = {15.f,15.f,15.f,15.f,15.f,-15.f};
 	uint8_t tx_buf[API_TX_SIZE] = {0};
-  
-  float t = ((float)millis())*.001f;
-  for(int ch = 0; ch < NUM_CHANNELS; ch++)
-  {
-    // fpos[ch] = (0.5f*cos((t) + (float)ch)+0.5f)*30.f + 15.f;
-    fpos[ch] = (0.5f*cos((t) )+0.5f)*30.f + 15.f;
-  
-  }
-  fpos[5] = -fpos[5];
   format_packet(fpos, tx_buf);
   Serial1.write(tx_buf, 15);
   read_values_1();
   nh.spinOnce();
-  }
+}
