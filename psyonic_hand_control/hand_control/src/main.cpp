@@ -271,9 +271,47 @@ void read_values_1()
 void loop()
 {
   
-	uint8_t tx_buf[API_TX_SIZE] = {0};
+  uint8_t tx_buf[API_TX_SIZE] = {0};
   format_packet(fpos, tx_buf);
   Serial1.write(tx_buf, 15);
   read_values_1();
   nh.spinOnce();
+
+	// uint8_t tx_buf[API_TX_SIZE] = {0};
+  // format_packet(fpos, tx_buf);
+  // Serial1.write(tx_buf, 15);
+  // digitalWrite(led, LOW);
+
+  // // int time = 1000;
+
+  // // float fpos[NUM_CHANNELS] = {30.f,30.f,30.f,30.f,0.f,0.f};
+	// // uint8_t tx_buf[API_TX_SIZE] = {0};
+  
+  // // // float t = ((float)millis())*.001f;
+  // // // for(int ch = 0; ch < 1; ch++)
+  // // // {
+  // // //   fpos[ch] = (1.5f*cos((t) + (float)ch)+0.5f)*30.f + 30.f;
+  // // //   // fpos[ch] = (0.5f*cos((t) )+0.5f)*30.f + 15.f;
+  
+  // // // }
+  
+  // // fpos[1] = 0;
+  // // fpos[2] = 0;
+  // // // fpos[3] = 0;
+  // // fpos[3] = fpos[0];
+  // // fpos[4] = 0;
+  // // fpos[5] = 0;
+  // // format_packet(fpos, tx_buf);
+  // // Serial1.write(tx_buf, 15);
+  // // // delayMicroseconds(time);
+  // // // Serial1.flush();
+  // // // delayMicroseconds(time);
+  // // // delay(1);
+  // // read_values_1();
+  // // nh.spinOnce();
+  // // // digitalWrite(led, HIGH);
+
+  // // // read_values_1();
+  // // // nh.spinOnce();
+ 
 }

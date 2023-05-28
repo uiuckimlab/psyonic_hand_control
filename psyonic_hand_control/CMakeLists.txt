@@ -175,6 +175,10 @@ include_directories(
 ## Install ##
 #############
 
+add_executable(sinewave_demo src/sinewave.cpp)
+target_link_libraries(sinewave_demo ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+install(TARGETS sinewave_demo DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 

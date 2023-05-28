@@ -8,5 +8,18 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"ctime": "cpp",
+			"cmath": "cpp"
+		},
+		"python.autoComplete.extraPaths": [
+			"/home/kimlab/ws_music/devel/lib/python3/dist-packages",
+			"/opt/ros/noetic/lib/python3/dist-packages"
+		],
+		"python.analysis.extraPaths": [
+			"/home/kimlab/ws_music/devel/lib/python3/dist-packages",
+			"/opt/ros/noetic/lib/python3/dist-packages"
+		]
+	}
 }
