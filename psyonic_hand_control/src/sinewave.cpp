@@ -46,8 +46,10 @@ int main(int argc, char **argv)
    * buffer up before throwing some away.
    */
   ros::Publisher wave_pub = n.advertise<std_msgs::Float32MultiArray>("psyonic_controller", 1000);
-
-  ros::Rate loop_rate(125);
+  float looprate = 200;
+  bool sine_wave_flag = false;
+  // 10 20 50 100 200
+  ros::Rate loop_rate((int)looprate);
 
   /**
    * A count of how many messages we have sent. This is used to create
@@ -56,9 +58,14 @@ int main(int argc, char **argv)
   
   std_msgs::Float32MultiArray msg;
 
-  std::vector<float> sine_wave = {15.f,15.f,15.f,15.f,15.f,-15.f};
+  std::vector<float> finger_pose = {15.f,15.f,15.f,15.f,15.f,-15.f};
+
+  std::vector<float> open_pose = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  std::vector<float> close_pose = {114.f, 114.f, 114.f, 114.f, 114.f, 114.f};
+
+
   double current_time = 0.0000000;
-  double add_time = 0.008;
+  double add_time = 1./looprate;
   while (ros::ok())
   {
     /**
@@ -66,17 +73,26 @@ int main(int argc, char **argv)
      */
     
     float t = current_time * 5;
-    for(int i = 0; i < sine_wave.size(); i++){
-        sine_wave[i] = 57.0f*cos(t + (float)i) + 57.0f;  
+
+    if(sine_wave_flag){
+      for(int i = 0; i < finger_pose.size(); i++){
+          finger_pose[i] = 57.0f*cos(t + (float)i) + 57.0f;  
+      }
+    }else{
+      for(int i = 0; i < finger_pose.size(); i++){
+        if( (57.0f*cos(t + (float)i) + 57.0f) < 57.0f){
+          finger_pose[i] = open_pose[i];
+        }else{
+          finger_pose[i] = close_pose[i];
+        }
+      }
     }
 
-    // sine_wave[5] = -sine_wave[5]; 
-    sine_wave[4] = 0;
-    sine_wave[5] = 0;
-    // ROS_INFO_STREAM("HERE");
-    // ROS_INFO_STREAM("TIME: " << t );
-    // ROS_INFO_STREAM("VALUES: " << sine_wave[0]);
-    msg.data = sine_wave;
+
+    finger_pose[4] = 0;
+    finger_pose[5] = 0;
+  
+    msg.data = finger_pose;
 
     wave_pub.publish(msg);
 

@@ -3,7 +3,7 @@
 */
 #include <Arduino.h>
 #include <Wire.h>
-
+#include "helper_functions.h"
 #include <stdint.h>
 #include <math.h>
 
@@ -20,102 +20,68 @@ ros::Subscriber<std_msgs::Float32MultiArray> openHandSub("psyonic_controller", m
 // Setup finger position variable
 float fpos[NUM_CHANNELS] = {15.f,15.f,15.f,15.f,15.f, -15.f};
 
+uint8_t rx_buffer[API_RX_SIZE];
+
+// GET RID OF ME
+// float position[6];
+// float current[6];
+// float velocity[6];
+// float fingertip[36];
+
 
 /*Moves Fingers to the position user has set*/
 void moveHandCallback(const std_msgs::Float32MultiArray& msg){
-  for (int i = 0; i < msg.data_length && i < NUM_CHANNELS; i++) {
+  for (uint32_t i = 0; i < msg.data_length && i < NUM_CHANNELS; i++) {
     fpos[i] = msg.data[i];
   }
 }
 
-void read_values_1()
-{
-  int len_reception = 72; // 39:EXtended variant3 //72:EXtended variant1,2 //10: standard I2C
-  uint8_t c[len_reception];
-  uint8_t c_2[len_reception];
-  uint8_t data[len_reception];
-  float joint_angle[6];
-  float joint_current[6];
-  float tip_force[36];
-  int8_t sum =0;
-  for(int i=0;i<6;i++){
-    position[i] = 0;
-    current[i]  = 0;
-    velocity[i] = 0;
-    joint_angle[i]=0;
-    joint_current[i]=0;
+void read_values(){
 
-  }
-  for(int i=0;i<36;i++){
-    fingertip[i] = 0;
-    tip_force[i]=0;
-  }
-  for(int i=0;i<len_reception;i++){
-    c[i] = 0;
-    c_2[i]=0;
-    data[i]=0;
-  }
-  byte buffer[72];
-  Serial1.addMemoryForRead(buffer,sizeof(buffer));
-  int count_buffer=0;
-  int count_buffer_2=0;
-  int time = 1000;
+  int8_t sum = 0;
+  uint8_t data[API_RX_SIZE];
   int len1 = Serial1.available();
-  for (int i=0;i<len1;i++)
-  {
-      c[i] = Serial1.read();
-      count_buffer =i;
-  }
-  delayMicroseconds(time);
-  Serial1.flush();
-  delayMicroseconds(time);
-  int len2 = Serial1.available();
-  for (int i=0;i<len2;i++)
-  {
-      c_2[i] = Serial1.read();
-      count_buffer_2 =i;
-  }
-  for(int i=0; i<len_reception;i++){
-    if (i <(count_buffer_2 +1)){
-      data[i] = c_2[i];
-    }
-    else{
-      data[i] = c[i-(count_buffer_2 +1)];
-    }
-  }
-  sum = get_checksum(data, 72);
-  for(int i=0;i<6;i++){
-    
-    joint_angle[i] = position_converter(data[i*4+1],data[i*4+2]);
-    joint_current[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
-    if(i<5)
-    {
-      fingertip[i*6]= tipforce_converter_1(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
-      fingertip[i*6+1]= tipforce_converter_2(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
-      fingertip[i*6+2]= tipforce_converter_1(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
-      fingertip[i*6+3]= tipforce_converter_2(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
-      fingertip[i*6+4]= tipforce_converter_1(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);
-      fingertip[i*6+5]= tipforce_converter_2(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);            
-    }         
-    position[i] = joint_angle[i];
-    current[i]  = joint_current[i];
-    hand_msg.positions[i] = position[i];
-    hand_msg.currents[i] = current[i];
-  }
-  fingertip[35] = data[0];
-  fingertip[34] = data[71];
-  fingertip[32] = data[70];
-  fingertip[31] = data[69];
-  sum = sum % 256;
-  fingertip[33] = sum;
+  // hand_msg.fingertips[33] = len1;
+  // pub.publish(&hand_msg);
+  // return;
+  // if(len1 != API_RX_SIZE){
+  //   return;
+  // }
 
-  for(int i=0;i<36;i++){
-    hand_msg.fingertips[i] = fingertip[i];
+  for (int i = 0; i < API_RX_SIZE; i++){
+    data[i] = Serial1.read();
   }
+  
+  sum = get_checksum(data, API_RX_SIZE-1);
+  sum += (int8_t)data[API_RX_SIZE-1];
+
+  // if(sum != 0){
+  //   return;
+  // }
+
+  for(int i = 0; i < NUM_CHANNELS; i++){
+    
+    hand_msg.positions[i] = position_converter(data[i*4+1],data[i*4+2]);
+    hand_msg.currents[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
+    if(i < 5)
+    {
+      hand_msg.fingertips[i*6] = tipforce_converter_1(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
+      hand_msg.fingertips[i*6+1] = tipforce_converter_2(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
+      hand_msg.fingertips[i*6+2] = tipforce_converter_1(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
+      hand_msg.fingertips[i*6+3] = tipforce_converter_2(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
+      hand_msg.fingertips[i*6+4] = tipforce_converter_1(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);
+      hand_msg.fingertips[i*6+5] = tipforce_converter_2(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);            
+    }         
+  }
+  hand_msg.fingertips[35] = len1;
+  hand_msg.fingertips[34] = data[71];
+  hand_msg.fingertips[32] = data[70];
+  hand_msg.fingertips[31] = data[69];
+  sum = sum % 256;
+  hand_msg.fingertips[33] = sum;
+
   pub.publish(&hand_msg);
 }
-
-
 
 void setup()
 {
@@ -124,6 +90,7 @@ void setup()
   nh.advertise(pub);
   nh.subscribe(openHandSub);
   Serial1.begin(460800);
+  Serial1.addMemoryForRead(rx_buffer,API_RX_SIZE-63);
 }
 
 void loop()
@@ -131,7 +98,12 @@ void loop()
   
   uint8_t tx_buf[API_TX_SIZE] = {0};
   format_packet(fpos, tx_buf);
-  Serial1.write(tx_buf, 15);
-  read_values_1();
+  Serial1.write(tx_buf, API_TX_SIZE);
+  Serial1.clear();
+  int time = 1000;
+  delayMicroseconds(time);
+  Serial1.flush();
+  delayMicroseconds(time);
+  read_values();
   nh.spinOnce(); 
 }

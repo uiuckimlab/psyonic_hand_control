@@ -9,12 +9,12 @@ rostopic pub /psyonic_controller std_msgs/Float32MultiArray "layout:
     stride: 0
   data_offset: 0
 data:
-- 100
-- 100
-- 100
-- 100
-- 60
-- 100
+- 30
+- 30
+- 30
+- 30
+- 30
+- -30
 "
 
 - 100

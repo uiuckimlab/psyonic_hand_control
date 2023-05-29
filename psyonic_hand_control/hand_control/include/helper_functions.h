@@ -11,7 +11,7 @@
 
 #define NUM_CHANNELS 6
 #define API_TX_SIZE	 15
-
+#define API_RX_SIZE 72
 
 /*Helper function to get the signed 8bit checksum*/
 uint8_t get_checksum(uint8_t * arr, int size);
