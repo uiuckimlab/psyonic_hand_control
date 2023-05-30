@@ -99,4 +99,47 @@ float tipforce_converter_2(uint8_t data, uint8_t data2, uint8_t data3){ // 12bit
   return force;
 }
 
+void read_values(psyonic_hand_control::handVal &hand_msg, HardwareSerial &Serial1){
+
+  int8_t sum = 0;
+  uint8_t data[API_RX_SIZE];
+  int len1 = Serial1.available();
+
+  if(len1 != API_RX_SIZE){
+    return;
+  }
+
+  for (int i = 0; i < API_RX_SIZE; i++){
+    data[i] = Serial1.read();
+  }
+  
+  sum = get_checksum(data, API_RX_SIZE-1);
+  sum -= (int8_t)data[API_RX_SIZE-1];
+
+  if(sum != 0){
+    return;
+  }
+
+  for(int i = 0; i < NUM_CHANNELS; i++){
+    
+    hand_msg.positions[i] = position_converter(data[i*4+1],data[i*4+2]);
+    hand_msg.currents[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
+    if(i < 5)
+    {
+      hand_msg.fingertips[i*6] = tipforce_converter_1(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
+      hand_msg.fingertips[i*6+1] = tipforce_converter_2(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);
+      hand_msg.fingertips[i*6+2] = tipforce_converter_1(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
+      hand_msg.fingertips[i*6+3] = tipforce_converter_2(data[i*9+25+3],data[i*9+25+4],data[i*9+25+5]);
+      hand_msg.fingertips[i*6+4] = tipforce_converter_1(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);
+      hand_msg.fingertips[i*6+5] = tipforce_converter_2(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);            
+    }         
+  }
+  hand_msg.fingertips[35] = len1;
+  hand_msg.fingertips[34] = data[71];
+  hand_msg.fingertips[33] = sum;
+  hand_msg.fingertips[32] = data[70];
+  hand_msg.fingertips[31] = data[69];
+
+}
+
 

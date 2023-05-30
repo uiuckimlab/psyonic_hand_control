@@ -31,3 +31,5 @@ float tipforce_converter_1(uint8_t data, uint8_t data2, uint8_t data3);
 
 // Gets the force value from the finger tip version 2
 float tipforce_converter_2(uint8_t data, uint8_t data2, uint8_t data3);
+
+void read_values(psyonic_hand_control::handVal &hand_msg, HardwareSerial &Serial1);
