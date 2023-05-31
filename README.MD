@@ -11,7 +11,7 @@ The Teensy runs at a loop rate of 500 hz.
 # Software Diagram
 For the software, we are using ROS Noetic and rosserial to communicate the messages from the Teensy board over ROS. 
 
-![TeensyAndPsyonicpng](https://github.com/uiuckimlab/psyonic_hand_control/assets/19510003/b88fa4ff-8f70-4067-8256-edaa26dc9f67)
+![TeensyAndPsyonic](https://github.com/uiuckimlab/psyonic_hand_control/assets/19510003/79ccbed3-51ca-4e0c-9635-e6355fff4ba9)
 
 # Hand Moving Video
 
