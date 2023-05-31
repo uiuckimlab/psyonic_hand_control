@@ -17,5 +17,5 @@ For the software, we are using ROS Noetic and rosserial to communicate the messa
 
 In this video we show the Psyonic Hand moving through ROS. The fingers are moving in a sinusoidal trajectory with a loop rate of 100 hz, and a range of 0 to 114 degrees.
 
-https://github.com/uiuckimlab/psyonic_hand_control/assets/19510003/021323b0-3def-4230-9974-72d94442d86a
+https://github.com/uiuckimlab/psyonic_hand_control/assets/19510003/8433dbe7-d154-41a2-8761-0107d6e4e181
 
