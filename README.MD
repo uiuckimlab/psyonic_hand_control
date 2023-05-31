@@ -9,3 +9,8 @@ The hardware of the system consist of a 24 volt power source. Using a [DCDC conv
 # Software Diagram
 For the software, we are using ROS Noetic and rosserial to communicate the messages from the Teensy board over ROS. 
 ![TeensyAndPsyonicpng](https://github.com/uiuckimlab/psyonic_hand_control/assets/19510003/b88fa4ff-8f70-4067-8256-edaa26dc9f67)
+
+# Hand Moving Video
+
+https://github.com/uiuckimlab/psyonic_hand_control/assets/19510003/021323b0-3def-4230-9974-72d94442d86a
+
