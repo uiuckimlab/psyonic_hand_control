@@ -9,11 +9,11 @@
 int main(int argc, char **argv)
 {
 
-  ros::init(argc, argv, "sinewave");
+  ros::init(argc, argv, "drum_motion");
   ros::NodeHandle n;
 
   ros::Publisher wave_pub = n.advertise<std_msgs::Float32MultiArray>("psyonic_controller", 1000);
-  float looprate = 50;
+  float looprate = 100;
   bool sine_wave_flag = true;
   // 10 20 50 100 200
   ros::Rate loop_rate((int)looprate);
@@ -31,26 +31,30 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     
-    float t = current_time * 5;
+    float t = current_time * 25;
 
     if(sine_wave_flag){
-      for(int i = 0; i < finger_pose.size(); i++){
-          finger_pose[i] = 57.0f*cos(t + (float)i) + 57.0f;  
+      // for(int i = 0; i < finger_pose.size(); i++){
+          finger_pose[5] = 10.0f*cos(t) + 40.0f;  
       }
-    }else{
-      for(int i = 0; i < finger_pose.size(); i++){
-        if( (57.0f*cos(t + (float)i) + 57.0f) < 57.0f){
-          finger_pose[i] = open_pose[i];
-        }else{
-          finger_pose[i] = close_pose[i];
-        }
-      }
-    }
+    // }else{
+    //   for(int i = 0; i < finger_pose.size(); i++){
+    //     if( (57.0f*cos(t + (float)i) + 57.0f) < 57.0f){
+    //       finger_pose[i] = open_pose[i];
+    //     }else{
+    //       finger_pose[i] = close_pose[i];
+    //     }
+    //   }
+    // }
 
-
-    finger_pose[4] = 0;
-    finger_pose[5] = 0;
+    finger_pose[0] = 70;
+    finger_pose[1] = 0;
+    finger_pose[2] = 0;
+    finger_pose[3] = 0;
+    finger_pose[4] = 70;
+    // finger_pose[5] = 0;
   
+    finger_pose[5] = -finger_pose[5];
     msg.data = finger_pose;
 
     wave_pub.publish(msg);

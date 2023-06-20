@@ -41,7 +41,7 @@ void setup()
 
 void loop()
 {
-  
+  float start_time = millis();
   uint8_t tx_buf[API_TX_SIZE] = {0};
   format_packet(fpos, tx_buf);
   Serial1.write(tx_buf, API_TX_SIZE);
@@ -50,6 +50,8 @@ void loop()
   Serial1.flush();
   delayMicroseconds(time); // needed for correct read data
   read_values(hand_msg,Serial1);
+  hand_msg.fingertips[35] = millis() - start_time;
   pub.publish(&hand_msg);
+
   nh.spinOnce(); 
 }
