@@ -179,6 +179,10 @@ add_executable(sinewave_demo src/sinewave.cpp)
 target_link_libraries(sinewave_demo ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 install(TARGETS sinewave_demo DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(guitar_demo src/nobo_guitar.cpp)
+target_link_libraries(guitar_demo ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+install(TARGETS guitar_demo DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 add_executable(drum_motion src/drum_motion.cpp)
 target_link_libraries(drum_motion ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 install(TARGETS drum_motion DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
