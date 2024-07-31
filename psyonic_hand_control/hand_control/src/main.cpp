@@ -8,14 +8,14 @@
 #include <math.h>
 
 // Call back Function Header
-void moveHandCallback(const std_msgs::Float32MultiArray& msg);
+void moveHandCallback(const std_msgs::Float64MultiArray& msg);
 void enableThumbCallback(const std_msgs::Bool & msg);
 
 // Setup ROS Related variables
 ros::NodeHandle nh;
 psyonic_hand_control::handVal hand_msg;
 ros::Publisher pub("psyonic_hand_vals", &hand_msg);
-ros::Subscriber<std_msgs::Float32MultiArray> openHandSub("psyonic_controller/command", moveHandCallback);
+ros::Subscriber<std_msgs::Float64MultiArray> openHandSub("psyonic_controller/command", moveHandCallback);
 ros::Subscriber<std_msgs::Bool> enableThumbUpsamleSub("psyonic_controller/enable_upsample", enableThumbCallback);
 
 // Setup finger position variable
@@ -23,7 +23,7 @@ float fpos[NUM_CHANNELS] = {15.f,15.f,15.f,15.f,15.f, -15.f};
 uint8_t rx_buffer[API_RX_SIZE];
 
 /*Moves Fingers to the position user has set*/
-void moveHandCallback(const std_msgs::Float32MultiArray& msg){
+void moveHandCallback(const std_msgs::Float64MultiArray& msg){
   for (uint32_t i = 0; i < msg.data_length && i < NUM_CHANNELS; i++) {
     fpos[i] = msg.data[i] * 180.0 / M_PI;
   }
