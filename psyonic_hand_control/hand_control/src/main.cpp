@@ -14,9 +14,9 @@ void enableThumbCallback(const std_msgs::Bool & msg);
 // Setup ROS Related variables
 ros::NodeHandle nh;
 psyonic_hand_control::handVal hand_msg;
-ros::Publisher pub("robot1/psyonic_hand_vals", &hand_msg);
-ros::Subscriber<std_msgs::Float32MultiArray> openHandSub("robot1/psyonic_controller/command", moveHandCallback);
-ros::Subscriber<std_msgs::Bool> enableThumbUpsamleSub("robot1/psyonic_controller/enable_upsample", enableThumbCallback);
+ros::Publisher pub("psyonic_hand_vals", &hand_msg);
+ros::Subscriber<std_msgs::Float32MultiArray> openHandSub("psyonic_controller/command", moveHandCallback);
+ros::Subscriber<std_msgs::Bool> enableThumbUpsamleSub("psyonic_controller/enable_upsample", enableThumbCallback);
 
 // Setup finger position variable
 float fpos[NUM_CHANNELS] = {15.f,15.f,15.f,15.f,15.f, -15.f};
