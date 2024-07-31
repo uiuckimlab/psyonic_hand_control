@@ -19,11 +19,31 @@ uint8_t get_checksum(uint8_t * arr, int size){
 	return -checksum;
 }
 
+void enable_thumb_upsample( uint8_t tx_buf[API_TX_SIZE], bool enable){
+  tx_buf[0] = 0x50;
+  tx_buf[1] = 0xC2;
+  if(!enable){
+    tx_buf[1] = 0xC3;
+  }
+
+  api_i16_t pld;
+	for(int ch = 0; ch < NUM_CHANNELS; ch++)
+	{
+		pld.i16[ch] = (int16_t)((0 * 32767.0f) / 150.0f);
+	}
+	for(int i = 0; i < NUM_CHANNELS * sizeof(int16_t); i++)
+	{
+		tx_buf[i+2] = pld.u8[i];
+	}
+	tx_buf[API_TX_SIZE-1] = get_checksum((uint8_t*)tx_buf, API_TX_SIZE-1);  //full checksum
+
+}
+
 /*Takes 6x floating point inputs for hand position arguments in DEGREES, and creates an
 API frame to send out*/
 void format_packet(float fpos_in[NUM_CHANNELS], uint8_t tx_buf[API_TX_SIZE]){
 	tx_buf[0] = 0x50; //hand slave address (use default)	
-	tx_buf[1] = 0x10;
+	tx_buf[1] = 0x11; // Variant 2. // Variant 1 : 0x10;
 	api_i16_t pld;
 	for(int ch = 0; ch < NUM_CHANNELS; ch++)
 	{
@@ -46,14 +66,29 @@ float position_converter(uint8_t data, uint8_t data2){
   return theta;
 }
 
+// // Variant 1
+// // Converts data from little endian to big endian and into correct current format
+// float current_converter(uint8_t data, uint8_t data2){
+//   int16_t amp = (data2);
+//   amp = amp << 8;
+//   amp = amp | data;
+//   float current = ((float(amp) / 620.606079)); // BLE command Rv
+//   return current;
+// }
+
+// Variant 2
 // Converts data from little endian to big endian and into correct current format
-float current_converter(uint8_t data, uint8_t data2){
-  int16_t amp = (data2);
-  amp = amp << 8;
-  amp = amp | data;
-  float current = ((float(amp) / 620.606079)); // BLE command Rv
-  return current;
+
+float velocity_converter(uint8_t data, uint8_t data2){
+  int16_t rotor_velocity = (data2);
+  rotor_velocity = rotor_velocity << 8;
+  rotor_velocity = rotor_velocity | data;
+  float gear_ratio = 649;
+  float velocity = float(rotor_velocity)/ (4 *gear_ratio);
+  // float current = ((float(amp) / 620.606079)); // BLE command Rv
+  return velocity;
 }
+
 
 float tipforce_converter_1(uint8_t data, uint8_t data2, uint8_t data3){ // 12bit
   int valsize = 2;
@@ -123,7 +158,8 @@ void read_values(psyonic_hand_control::handVal &hand_msg, HardwareSerial &Serial
   for(int i = 0; i < NUM_CHANNELS; i++){
     
     hand_msg.positions[i] = position_converter(data[i*4+1],data[i*4+2]);
-    hand_msg.currents[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
+    // hand_msg.currents[i] = current_converter(data[i*4+1+2],data[i*4+2+2]);
+    hand_msg.velocities[i] = velocity_converter(data[i*4+1+2],data[i*4+2+2]);
     if(i < 5)
     {
       hand_msg.fingertips[i*6] = tipforce_converter_1(data[i*9+25],data[i*9+25+1],data[i*9+25+2]);

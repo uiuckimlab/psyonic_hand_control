@@ -4,6 +4,7 @@
 #include <ros.h>
 #include <std_msgs/Int16.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <ros/time.h>
 #include <psyonic_hand_control/handVal.h>
 #include <std_msgs/Float32MultiArray.h>
@@ -23,8 +24,15 @@ void format_packet(float fpos_in[NUM_CHANNELS], uint8_t tx_buf[API_TX_SIZE]);
 // Converts data from little endian to big endian and into degree format
 float position_converter(uint8_t data, uint8_t data2);
 
+// // Converts data from little endian to big endian and into current format
+// float current_converter(uint8_t data, uint8_t data2);
+
+// enables upsampling on the thumb
+void enable_thumb_upsample( uint8_t tx_buf[API_TX_SIZE], bool enable = true);
+
+
 // Converts data from little endian to big endian and into current format
-float current_converter(uint8_t data, uint8_t data2);
+float velocity_converter(uint8_t data, uint8_t data2);
 
 // Gets the force value from the finger tip version 1
 float tipforce_converter_1(uint8_t data, uint8_t data2, uint8_t data3);
