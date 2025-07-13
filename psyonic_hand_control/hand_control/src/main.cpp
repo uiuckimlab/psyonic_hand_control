@@ -101,15 +101,15 @@ void setup()
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
     COMMAND_TOPIC_SUB));
 
-  // RCCHECK(rclc_subscription_init_default(
-  //   &enable_thumb_subscriber,
-  //   &node,
-  //   ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
-  //   ENABLE_UPSAMPLE_SUB));
+  RCCHECK(rclc_subscription_init_default(
+    &enable_thumb_subscriber,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+    ENABLE_UPSAMPLE_SUB));
   
 
        // create executor
-  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &command_subscriber,
@@ -117,12 +117,12 @@ void setup()
     &moveHandCallback,
     ON_NEW_DATA));
 
-  // RCCHECK(rclc_executor_add_subscription(
-  //   &executor,
-  //   &enable_thumb_subscriber,
-  //   &enable_thumb_up_msg,
-  //   &enableThumbCallback,
-  //   ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &enable_thumb_subscriber,
+    &enable_thumb_up_msg,
+    &enableThumbCallback,
+    ON_NEW_DATA));
 
   for(size_t i = 0; i < POSITION_SIZE; i++){
     hand_msg.positions[i] = fpos[i];
