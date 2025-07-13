@@ -1,13 +1,19 @@
 /* Authors: Jooyoung Hong, Sankalp Yamsani, Chaerim Moon, Kazuki Shin 
    Documentation and Example code for Psyonic Here: https://github.com/psyonicinc/ability-hand-api
 */
-#include <ros.h>
-#include <std_msgs/Int16.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Bool.h>
-#include <ros/time.h>
-#include <psyonic_hand_control/handVal.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <Arduino.h>
+#include <micro_ros_platformio.h>
+
+#include <rcl/rcl.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
+#include <std_msgs/msg/int16.h>
+#include <std_msgs/msg/float32.h>
+#include <std_msgs/msg/bool.h>
+
+#include <psyonic_hand_control/msg/hand_val.h>
+#include <std_msgs/msg/float32_multi_array.h>
+#include <std_msgs/msg/float64_multi_array.h>
 
 
 #define NUM_CHANNELS 6
@@ -40,4 +46,4 @@ float tipforce_converter_1(uint8_t data, uint8_t data2, uint8_t data3);
 // Gets the force value from the finger tip version 2
 float tipforce_converter_2(uint8_t data, uint8_t data2, uint8_t data3);
 
-void read_values(psyonic_hand_control::handVal &hand_msg, HardwareSerial &Serial1);
+void read_values(psyonic_hand_control__msg__HandVal &hand_msg, HardwareSerial &Serial1);

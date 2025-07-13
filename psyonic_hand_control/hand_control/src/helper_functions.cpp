@@ -134,7 +134,7 @@ float tipforce_converter_2(uint8_t data, uint8_t data2, uint8_t data3){ // 12bit
   return force;
 }
 
-void read_values(psyonic_hand_control::handVal &hand_msg, HardwareSerial &Serial1){
+void read_values(psyonic_hand_control__msg__HandVal &hand_msg, HardwareSerial &Serial1){
 
   int8_t sum = 0;
   uint8_t data[API_RX_SIZE];
