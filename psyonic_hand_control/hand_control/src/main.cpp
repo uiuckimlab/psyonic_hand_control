@@ -7,16 +7,20 @@
 #endif
 
 #define NODE_NAME "psyonic_controller_node"
-#define TOPIC_NAME "psyonic_hand_vals"
-#define COMMAND_TOPIC_SUB "psyonic_controller/command"
+#define RIGHT_TOPIC_NAME "right/psyonic_hand_vals"
+#define LEFT_TOPIC_NAME "left/psyonic_hand_vals"
+#define RIGHT_COMMAND_TOPIC_SUB "psyonic_controller/right/command"
+#define LEFT_COMMAND_TOPIC_SUB "psyonic_controller/left/command"
 #define ENABLE_UPSAMPLE_SUB "psyonic_controller/enable_upsample"
 #define POSITION_SIZE 6
 #define CURRENT_SIZE 6
 #define VELOCITY_SIZE 6
 #define FINGERTIP_SENSOR_SIZE 36
 
-rcl_publisher_t publisher;
-rcl_subscription_t command_subscriber;
+rcl_publisher_t right_publisher;
+rcl_publisher_t left_publisher;
+rcl_subscription_t right_command_subscriber;
+rcl_subscription_t left_command_subscriber;
 rcl_subscription_t enable_thumb_subscriber;
 rclc_executor_t executor;
 rclc_support_t support;
@@ -37,32 +41,49 @@ void error_loop() {
 }
 
 // Setup ROS Related Msgs
-psyonic_hand_control__msg__HandVal hand_msg;
-std_msgs__msg__Float64MultiArray command_msg;
+psyonic_hand_control__msg__HandVal right_hand_msg;
+psyonic_hand_control__msg__HandVal left_hand_msg;
+std_msgs__msg__Float64MultiArray right_command_msg;
+std_msgs__msg__Float64MultiArray left_command_msg;
 std_msgs__msg__Bool enable_thumb_up_msg;
 
 // Command msg array buffer
-double array_buffer[NUM_CHANNELS];
+double right_array_buffer[NUM_CHANNELS];
+double left_array_buffer[NUM_CHANNELS];
 
 // Setup finger position variable
-float fpos[NUM_CHANNELS] = {30.f,30.f,30.f,30.f,30.f, -30.f};
-uint8_t rx_buffer[API_RX_SIZE];
+float right_fpos[NUM_CHANNELS] = {30.f,30.f,30.f,30.f,30.f, -30.f};
+float left_fpos[NUM_CHANNELS] = {30.f,30.f,30.f,30.f,30.f, -30.f};
+uint8_t rx_buffer1[API_RX_SIZE];
+uint8_t rx_buffer2[API_RX_SIZE];
 
 /*Moves Fingers to the position user has set*/
-void moveHandCallback(const void * msgin){
+void moveRightHandCallback(const void * msgin){
   const std_msgs__msg__Float64MultiArray * msg = (const std_msgs__msg__Float64MultiArray *)msgin;
   for (uint32_t i = 0; i < msg->data.size  && i < NUM_CHANNELS; i++) {
-    fpos[i] = msg->data.data[i] * 180.0 / M_PI;
+    right_fpos[i] = msg->data.data[i] * 180.0 / M_PI;
+  }
+}
+void moveLeftHandCallback(const void * msgin){
+  const std_msgs__msg__Float64MultiArray * msg = (const std_msgs__msg__Float64MultiArray *)msgin;
+  for (uint32_t i = 0; i < msg->data.size  && i < NUM_CHANNELS; i++) {
+    left_fpos[i] = msg->data.data[i] * 180.0 / M_PI;
   }
 }
 
 void enableThumbCallback(const void * msgin){
-  const std_msgs__msg__Bool * msg = (const std_msgs__msg__Bool *)msgin;
+  const std_msgs__msg__Bool * msg1 = (const std_msgs__msg__Bool *)msgin;
   int time = 1000;
   delayMicroseconds(time*5);
-  uint8_t tx_buf_enable[API_TX_SIZE] = {0};
-  enable_thumb_upsample(tx_buf_enable, msg->data);
-  Serial1.write(tx_buf_enable, API_TX_SIZE);
+  uint8_t tx_buf_enable1[API_TX_SIZE] = {0};
+  enable_thumb_upsample(tx_buf_enable1, msg1->data);
+  Serial1.write(tx_buf_enable1, API_TX_SIZE);
+  delayMicroseconds(time);
+
+  delayMicroseconds(time*5);
+  uint8_t tx_buf_enable2[API_TX_SIZE] = {0};
+  enable_thumb_upsample(tx_buf_enable2, msg1->data);
+  Serial2.write(tx_buf_enable2, API_TX_SIZE);
   delayMicroseconds(time);
 }
 
@@ -82,24 +103,39 @@ void setup()
   // create node
   RCCHECK(rclc_node_init_default(&node, NODE_NAME, "", &support));
   
-  std_msgs__msg__Float64MultiArray__init(&command_msg);
-  command_msg.data.capacity = NUM_CHANNELS;
-  command_msg.data.size = 0;
-  command_msg.data.data = array_buffer;
+  std_msgs__msg__Float64MultiArray__init(&right_command_msg);
+  right_command_msg.data.capacity = NUM_CHANNELS;
+  right_command_msg.data.size = 0;
+  right_command_msg.data.data = right_array_buffer;
+  
+  std_msgs__msg__Float64MultiArray__init(&left_command_msg);
+  left_command_msg.data.capacity = NUM_CHANNELS;
+  left_command_msg.data.size = 0;
+  left_command_msg.data.data = left_array_buffer;
 
   // create publisher
   RCCHECK(rclc_publisher_init_default(
-    &publisher,
+    &right_publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(psyonic_hand_control, msg, HandVal),
-    TOPIC_NAME));
+    RIGHT_TOPIC_NAME));
+  RCCHECK(rclc_publisher_init_default(
+    &left_publisher,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(psyonic_hand_control, msg, HandVal),
+    LEFT_TOPIC_NAME));
   
   // Create Subscribers
   RCCHECK(rclc_subscription_init_default(
-    &command_subscriber,
+    &right_command_subscriber,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
-    COMMAND_TOPIC_SUB));
+    RIGHT_COMMAND_TOPIC_SUB));
+  RCCHECK(rclc_subscription_init_default(
+    &left_command_subscriber,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
+    LEFT_COMMAND_TOPIC_SUB));
 
   RCCHECK(rclc_subscription_init_default(
     &enable_thumb_subscriber,
@@ -109,12 +145,19 @@ void setup()
   
 
        // create executor
-  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 3, &allocator));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
-    &command_subscriber,
-    &command_msg,
-    &moveHandCallback,
+    &right_command_subscriber,
+    &right_command_msg,
+    &moveRightHandCallback,
+    ON_NEW_DATA));
+
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &left_command_subscriber,
+    &left_command_msg,
+    &moveLeftHandCallback,
     ON_NEW_DATA));
 
   RCCHECK(rclc_executor_add_subscription(
@@ -125,44 +168,70 @@ void setup()
     ON_NEW_DATA));
 
   for(size_t i = 0; i < POSITION_SIZE; i++){
-    hand_msg.positions[i] = fpos[i];
+    right_hand_msg.positions[i] = right_fpos[i];
+    left_hand_msg.positions[i] = left_fpos[i];
   }
   for(size_t i = 0; i < CURRENT_SIZE; i++){
-    hand_msg.currents[i] = 0.0;
+    right_hand_msg.currents[i] = 0.0;
+    left_hand_msg.currents[i] = 0.0;
   }
   for(size_t i = 0; i < VELOCITY_SIZE; i++){
-    hand_msg.velocities[i] = 0.0;
+    right_hand_msg.velocities[i] = 0.0;
+    left_hand_msg.velocities[i] = 0.0;
   }
   for(size_t i = 0; i < FINGERTIP_SENSOR_SIZE; i++){
-    hand_msg.fingertips[i] = 0.0;
+    right_hand_msg.fingertips[i] = 0.0;
+    left_hand_msg.fingertips[i] = 0.0;
   }
 
   Serial1.begin(460800);
-  Serial1.addMemoryForRead(rx_buffer,API_RX_SIZE-63); // 63 is default buffer size, so trying to make it 72 bytes
+  Serial1.addMemoryForRead(rx_buffer1,API_RX_SIZE-63); // 63 is default buffer size, so trying to make it 72 bytes
   Serial1.clear();
+  Serial2.begin(460800);
+  Serial2.addMemoryForRead(rx_buffer2,API_RX_SIZE-63); // 63 is default buffer size, so trying to make it 72 bytes
+  Serial2.clear();
   int time = 1000;
   delayMicroseconds(time*5);
-  uint8_t tx_buf_enable[API_TX_SIZE] = {0};
-  enable_thumb_upsample(tx_buf_enable, true);
-  Serial1.write(tx_buf_enable, API_TX_SIZE);
+  uint8_t tx_buf_enable1[API_TX_SIZE] = {0};
+  enable_thumb_upsample(tx_buf_enable1, true);
+  Serial1.write(tx_buf_enable1, API_TX_SIZE);
   delayMicroseconds(time);
-
+  uint8_t tx_buf_enable2[API_TX_SIZE] = {0};
+  enable_thumb_upsample(tx_buf_enable2, true);
+  Serial2.write(tx_buf_enable2, API_TX_SIZE);
+  delayMicroseconds(time);
+  
 
 }
 
+unsigned long initial_time = millis();
+
 void loop()
-{
+{ 
   float start_time = millis();
-  uint8_t tx_buf[API_TX_SIZE] = {0};
-  format_packet(fpos, tx_buf);
-  Serial1.write(tx_buf, API_TX_SIZE);
+  uint8_t tx_buf1[API_TX_SIZE] = {0};
+  format_packet(right_fpos, tx_buf1);
+  Serial1.write(tx_buf1, API_TX_SIZE);
+
+  uint8_t tx_buf2[API_TX_SIZE] = {0};
+  format_packet(left_fpos, tx_buf2);
+  Serial2.write(tx_buf2, API_TX_SIZE);
+
   int time = 1000;
-  delayMicroseconds(time); // needed for correct read data
-  Serial1.flush();
-  delayMicroseconds(time); // needed for correct read data
-  read_values(hand_msg,Serial1);
-  hand_msg.fingertips[35] = millis() - start_time;
-  RCSOFTCHECK(rcl_publish(&publisher, &hand_msg, NULL));
+  // delayMicroseconds(time); // needed for correct read data
+  // Serial1.flush();
+  // Serial2.flush();
+  // delayMicroseconds(time); // needed for correct read data
+
+  read_values(right_hand_msg,Serial1);
+  read_values(left_hand_msg,Serial2);
+  
+  right_hand_msg.fingertips[35] = millis() - start_time;
+  left_hand_msg.fingertips[35] = millis() - start_time;
+
+
+  RCSOFTCHECK(rcl_publish(&right_publisher, &right_hand_msg, NULL));
+  RCSOFTCHECK(rcl_publish(&left_publisher, &left_hand_msg, NULL));
   // Spin executor to receive messages
   RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
 }

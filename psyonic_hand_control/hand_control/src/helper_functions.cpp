@@ -170,11 +170,11 @@ void read_values(psyonic_hand_control__msg__HandVal &hand_msg, HardwareSerial &S
       hand_msg.fingertips[i*6+5] = tipforce_converter_2(data[i*9+25+6],data[i*9+25+7],data[i*9+25+8]);            
     }         
   }
-  hand_msg.fingertips[35] = len1;
-  hand_msg.fingertips[34] = data[71];
-  hand_msg.fingertips[33] = sum;
-  hand_msg.fingertips[32] = data[70];
-  hand_msg.fingertips[31] = data[69];
+  // hand_msg.fingertips[35] = len1;
+  // hand_msg.fingertips[34] = data[71];
+  // hand_msg.fingertips[33] = sum;
+  // hand_msg.fingertips[32] = data[70];
+  // hand_msg.fingertips[31] = data[69];
 
 }
 
